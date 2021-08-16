@@ -4,13 +4,14 @@
 #include <omp.h>
 
 int main(int argc, char const *argv[]){
-	int n = 5;
+	int static n = 3000;
 	int D[n][n];
-	float p = 0.5;
+	int D2[n][n];
+	float static p = 0.8;
 	int i,j;
-	int **A;
-	int array_D[ n*(n-1) / 2];
-	printf("%ld \n", sizeof(array_D));
+	//int **A;
+	//int array_D[ n*(n-1) / 2];
+	//printf("%ld \n", sizeof(array_D));
 	//int k_ad;
 	//k_ad = 0;
 	//foo_function(matrix_a);
@@ -48,12 +49,14 @@ int main(int argc, char const *argv[]){
 
 	//Esto es para imprimir la matriz
 	
+	/*
 	for (i = 0; i < n; i++){
 		for(j= 0; j < n; j++){
 			printf("%d \t", D[i][j]);
 		}
 		printf("------------ \n");
 	}
+	*/
 	
 
 
@@ -65,6 +68,7 @@ int main(int argc, char const *argv[]){
 	//Paralelizamos el vector de grados; por es claro que es una suma 
 	//de valores independientes. 
 	//Directamente; cada hilo le toca un nodo; separamos los nodos.
+	/*
 	#pragma omp parallel
 	{
 		int id;
@@ -81,9 +85,11 @@ int main(int argc, char const *argv[]){
 			}
 
 	}
+	*/
 
-	//printf("TERMINAMOS DE SACAR LOS grados\n");
+	//printf("TERMINAMOS DE SACAR LOS grados\n"); 
 
+	//SACAMOS LOS D²
 	#pragma omp parallel
 	{
 		int id;
@@ -91,13 +97,78 @@ int main(int argc, char const *argv[]){
 		#pragma omp for
 		for (int i = 0; i < n; ++i){
 				for (int j = i; j < n; ++j){
-					printf("ENTRADA (%d, %d) , ---- , thread -> %d \n", i,j, id);
+					if (i == j){
+						int degree = 0;
+						for (int k = 0; k < n; ++k){
+							degree += D[i][k];
+						}
+						//number_degree[node] = degree;
+						D2[i][i] = degree;
+					}else{
+						//printf("ENTRADA (%d, %d) , ---- , thread -> %d \n", i,j, id);
+						//Hacemos la multuplicación; 
+
+						int result = 0;
+						for (int k = 0; k < n; ++k){
+							result += D[i][k] * D[j][k];
+							//D2[i][j] = 
+							/* code */
+						}
+						D2[i][j] = result;
+						D2[j][i] = result;
+					}
 				}
 
 				//printf("node %d - > degree %d \n", node,number_degree[node]);
 		}
 
 	}
+	//SACAMOS LA DIAGONAL 
+
+	int diag[n];
+	float clus[n];
+
+	#pragma omp parallel
+	{
+		int id;
+		id = omp_get_thread_num();
+		#pragma omp for
+		for (int i = 0; i < n; ++i){
+			int suma_diag = 0;
+			for (int k = 0; k < n; ++k){
+				suma_diag += D2[i][k] * D[i][k];
+			}
+			diag[i] = suma_diag; 
+			clus[i] = (float) suma_diag / (float)( D2[i][i] * (D2[i][i] - 1));
+				//printf("node %d - > degree %d \n", node,number_degree[node]);
+		}
+
+	}
+
+	/*
+	for (i = 0; i < n; i++){
+		for(j= 0; j < n; j++){
+			printf("%d \t", D2[i][j]);
+		}
+		printf("------------ \n");
+	}
+
+	printf(".........----------------------------------.................. \n");
+	for (i = 0; i < n; i++){
+			printf("%d \t", diag[i]);
+	}
+	printf("\n");
+
+	printf(".........----------------------------------.................. \n");
+	for (i = 0; i < n; i++){
+			printf("%f \t", clus[i]);
+	}
+	printf("\n");
+	*/
+
+
+
+
 
 	/*
 

@@ -1,73 +1,108 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
-
-/*
-const int N = 3;
-
-void foo_function(int arr[N][N]){
-    int i, j;
-    for (i = 0; i < N; i++)
-      for (j = 0; j < N; j++)
-        arr[i][j] = 0;
-    	printf("%d \t", arr[i][j]);
-}
-*/
+#include <omp.h>
 
 int main(int argc, char const *argv[]){
-	int n = 950;
+	int n = 5;
 	int D[n][n];
-	float p = 0.8;
+	float p = 0.5;
 	int i,j;
 	int **A;
+	int array_D[ n*(n-1) / 2];
+	printf("%ld \n", sizeof(array_D));
+	//int k_ad;
+	//k_ad = 0;
 	//foo_function(matrix_a);
 	
 	//Aquí generamos la matriz
+	
 	for (i = 0; i < n; i++){
 		for(j= 0 ; j < n; j++){
 			D[i][j] = 0;
 		}
 	}
-
+	
+	//printf("%ld \n", sizeof(D) );
 	for (i = 0; i < n; i++){
 		for(j= i +1 ; j < n; j++){
 			double r = ((double) rand() / (RAND_MAX));
 			//printf("%f \n", r);
 			if ( r < p){
 					D[i][j] = 1;
+					//array_D[k_ad] = 1;
+					//k_ad = k_ad + 1;
 					D[j][i] = 1;
+			}else{
+					D[i][j] = 0;
+					D[j][i] = 0;
+					//array_D[k_ad] = 0;
+					//k_ad = k_ad + 1;
 			}
 		}
 	}
+	//printf("%ld \n", sizeof(D) );
 
 	//Hasta aquí tenemos la matriz de adyacencia
 
 
 	//Esto es para imprimir la matriz
-	/*
+	
 	for (i = 0; i < n; i++){
 		for(j= 0; j < n; j++){
 			printf("%d \t", D[i][j]);
 		}
 		printf("------------ \n");
 	}
-	*/
+	
 
 
-	//#Primer algoritmo secuencial.
+	//#Aquí emepzamos a paralelizar.
 	int number_triagles[n];
 	int number_degree[n];
-	float clust[n];
+	float clustering[n];
 
-	//Sacamos el vector de grados
-	for (int node = 0; node < n; ++node){
-		int degree = 0;
-		for (int k = 0; k < n; ++k){
-			degree += D[node][k];
-		}
-		number_degree[node] = degree;
-		//printf("Node %d ------> %d \n",node, degree );
+	//Paralelizamos el vector de grados; por es claro que es una suma 
+	//de valores independientes. 
+	//Directamente; cada hilo le toca un nodo; separamos los nodos.
+	#pragma omp parallel
+	{
+		int id;
+		id = omp_get_thread_num();
+		#pragma omp for
+			for (int node = 0; node < n; ++node){
+				printf("Nodo %d , ---- , thread -> %d \n", node, id);
+				int degree = 0;
+				for (int k = 0; k < n; ++k){
+					degree += D[node][k];
+				}
+				number_degree[node] = degree;
+				//printf("node %d - > degree %d \n", node,number_degree[node]);
+			}
+
 	}
+
+	//printf("TERMINAMOS DE SACAR LOS grados\n");
+
+	#pragma omp parallel
+	{
+		int id;
+		id = omp_get_thread_num();
+		#pragma omp for
+		for (int i = 0; i < n; ++i){
+				for (int j = i; j < n; ++j){
+					printf("ENTRADA (%d, %d) , ---- , thread -> %d \n", i,j, id);
+					//Hacemos la multuplicación; 
+				}
+
+				//printf("node %d - > degree %d \n", node,number_degree[node]);
+		}
+
+	}
+
+	/*
+
+
 
 	//Sacamos los triángulos
 	for (int node = 0; node < n; ++node){
@@ -96,40 +131,9 @@ int main(int argc, char const *argv[]){
 	for (int node = 0; node < n; ++node){
 		float t = (float) number_triagles[node];
 		float d = (float) number_degree[node];
-		clust[node] = t / (d * (d-1));
 		//printf("%f \n", t / (d * (d-1)) );
 	}
 	//Acaterminaclustering
+	*/
 	
 }
-
-
-/*
-	for (i = 0; i < n; i++){
-		for(j= 0 ; j < n; j++){
-			matrix_a[i][j] = 0;
-		}
-	}
-
-	for (i = 0; i < n; i++){
-		for(j= i +1 ; j < n; j++){
-			double r = ((double) rand() / (RAND_MAX));
-			printf("%f \n", r);
-			if ( r < p){
-					matrix_a[i][j] = 1;
-					matrix_a[j][i] = 1;
-			}
-		}
-	}
-	printf("%d \n", n);
-	for (i = 0; i < n; i++){
-		for(j= 0; j < n; j++){
-			printf("%d \t", matrix_a[i][j]);
-		}
-		printf("------------ \n");
-	}
-	//Aquí matrix_a es la que queremos
-	//int G_a = generate_matrix(n);
-
-	return 0;
-	*/
